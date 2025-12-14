@@ -19,9 +19,7 @@ func NewUserHandler(db *sql.DB) *UserHandler {
 	return &UserHandler{db: db}
 }
 
-// CreateUser обрабатывает создание нового пользователя
 func (h *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
-	// Парсинг JSON
 	var request struct {
 		Email    string `json:"email"`
 		Password string `json:"password"`
@@ -35,7 +33,6 @@ func (h *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Валидация email
 	emailRegex := regexp.MustCompile(`^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$`)
 	if !emailRegex.MatchString(request.Email) {
 		w.WriteHeader(http.StatusBadRequest)
@@ -43,28 +40,24 @@ func (h *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Валидация пароля
 	if len(request.Password) < 8 {
 		w.WriteHeader(http.StatusBadRequest)
 		json.NewEncoder(w).Encode(map[string]string{"error": "Password must be at least 8 characters"})
 		return
 	}
 
-	// Валидация имени
 	if strings.TrimSpace(request.Name) == "" {
 		w.WriteHeader(http.StatusBadRequest)
 		json.NewEncoder(w).Encode(map[string]string{"error": "Name is required"})
 		return
 	}
 
-	// Валидация возраста
 	if request.Age < 18 || request.Age > 120 {
 		w.WriteHeader(http.StatusBadRequest)
 		json.NewEncoder(w).Encode(map[string]string{"error": "Age must be between 18 and 120"})
 		return
 	}
 
-	// Проверка существования пользователя
 	var existingID int
 	err := h.db.QueryRow("SELECT id FROM users WHERE email = $1", request.Email).Scan(&existingID)
 	if err != nil && err != sql.ErrNoRows {
@@ -79,10 +72,8 @@ func (h *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Хеширование пароля (упрощенный пример)
 	hashedPassword := fmt.Sprintf("hashed_%s", request.Password)
 
-	// Создание пользователя в БД
 	query := `INSERT INTO users (email, password_hash, name, age, created_at) 
 	          VALUES ($1, $2, $3, $4, $5) RETURNING id`
 	
@@ -95,7 +86,6 @@ func (h *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Формирование ответа
 	response := map[string]interface{}{
 		"id":        userID,
 		"email":     request.Email,
@@ -110,9 +100,7 @@ func (h *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(response)
 }
 
-// GetUser обрабатывает получение пользователя по ID
 func (h *UserHandler) GetUser(w http.ResponseWriter, r *http.Request) {
-	// Извлечение ID из URL
 	userID := r.URL.Query().Get("id")
 	if userID == "" {
 		w.WriteHeader(http.StatusBadRequest)
@@ -120,7 +108,6 @@ func (h *UserHandler) GetUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Запрос к БД
 	var id int
 	var email, name string
 	var age int
@@ -143,7 +130,6 @@ func (h *UserHandler) GetUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Формирование ответа
 	response := map[string]interface{}{
 		"id":         id,
 		"email":      email,
